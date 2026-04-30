@@ -2,8 +2,11 @@ FROM eclipse-temurin:17
 
 WORKDIR /app
 
-COPY target/*.jar app.jar
+# Copy everything
+COPY . .
 
-EXPOSE 8080
+# Build the project
+RUN ./mvnw clean package -DskipTests
 
-ENTRYPOINT ["java","-Dserver.port=${PORT}","-jar","app.jar"]
+# Run the jar
+CMD ["java", "-Dserver.port=${PORT}", "-jar", "target/mit-approval-system-0.0.1-SNAPSHOT.jar"]
