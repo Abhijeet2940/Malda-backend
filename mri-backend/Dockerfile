@@ -1,12 +1,16 @@
+# Stage 1: Build the app
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+COPY . .
+
+RUN mvn clean package -DskipTests
+
+# Stage 2: Run the app
 FROM eclipse-temurin:17
 
 WORKDIR /app
 
-# Copy everything
-COPY . .
+COPY --from=builder /app/target/*.jar app.jar
 
-# Build the project
-RUN ./mvnw clean package -DskipTests
-
-# Run the jar
-CMD ["java", "-Dserver.port=${PORT}", "-jar", "target/mit-approval-system-0.0.1-SNAPSHOT.jar"]
+CMD ["sh", "-c", "java -Dserver.port=$PORT -jar app.jar"]
