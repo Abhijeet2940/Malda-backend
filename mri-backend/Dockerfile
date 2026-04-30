@@ -1,18 +1,16 @@
+# Build stage
+FROM maven:3.9.6-eclipse-temurin-17 AS builder
+
+WORKDIR /app
+COPY mri-backend ./mri-backend
+
+WORKDIR /app/mri-backend
+RUN mvn clean package -DskipTests
+
+# Run stage
 FROM eclipse-temurin:17
 
 WORKDIR /app
+COPY --from=builder /app/mri-backend/target/*.jar app.jar
 
-# Copy everything
-COPY . .
-
-# Move into correct folder
-WORKDIR /app/mri-backend
-
-# Give permission to mvnw
-RUN chmod +x mvnw
-
-# Build the project
-RUN ./mvnw clean package -DskipTests
-
-# Run the jar
-CMD ["sh", "-c", "java -Dserver.port=$PORT -jar target/*.jar"]
+CMD ["sh", "-c", "java -Dserver.port=$PORT -jar app.jar"]
