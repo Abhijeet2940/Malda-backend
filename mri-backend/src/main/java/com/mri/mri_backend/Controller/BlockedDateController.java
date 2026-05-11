@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/blocked-dates")
-@CrossOrigin(origins = "http://maldarailwayinstitute.in")
+@CrossOrigin(origins = "http://www.maldarailwayinstitute.in")
 public class BlockedDateController {
 
     private final BlockedDateService blockedDateService;
