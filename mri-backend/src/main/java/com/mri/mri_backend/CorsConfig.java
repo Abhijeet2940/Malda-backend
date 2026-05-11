@@ -12,7 +12,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("https://maldarailwayinstitute.in") // replace with frontend URL in production
+                        .allowedOrigins("https://maldarailwayinstitute.in","https://www.maldarailwayinstitute.in") // replace with frontend URL in production
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
