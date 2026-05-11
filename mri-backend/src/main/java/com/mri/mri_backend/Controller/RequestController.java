@@ -17,7 +17,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/requests")
-@CrossOrigin(origins = "http://maldarailwayinstute.in")
+@CrossOrigin(origins = "http://maldarailwayinstitute.in")
 public class RequestController {
 
     private final RequestService requestService;
