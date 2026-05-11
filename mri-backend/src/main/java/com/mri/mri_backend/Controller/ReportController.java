@@ -8,7 +8,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = "http://maldarailwayinstute.in")
+@CrossOrigin(origins = "http://maldarailwayinstitute.in")
 public class ReportController {
 
     private final ReportService reportService;
