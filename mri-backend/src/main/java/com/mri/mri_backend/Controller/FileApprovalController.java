@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/files")
-@CrossOrigin(origins = "http://www.maldarailwayinstitute.in")
+@CrossOrigin(origins = {"https://www.maldarailwayinstitute.in", "https://maldarailwayinstitute.in"})
 public class FileApprovalController {
 
     @Autowired
