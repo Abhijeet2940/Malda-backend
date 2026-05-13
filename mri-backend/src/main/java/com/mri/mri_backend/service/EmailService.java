@@ -1,86 +1,331 @@
 package com.mri.mri_backend.service;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.apache.pdfbox.pdmodel.*;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
+
+import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
-import java.util.*;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
 @Service
 public class EmailService {
 
-    @Value("${BREVO_API_KEY}")
-    private String apiKey;
+    private final JavaMailSender mailSender;
+    private static final String FROM_EMAIL = "notifications@mri.indianrailways.gov.in";
 
-    private static final String FROM_EMAIL = "info.maldarailwayinstitute@gmail.com";
-    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     @Async
-    public void sendBookingApprovalEmail(String recipientEmail, String name, String instituteName, String bookingDate, String purpose, String entryId, String facilities, String specialRequirements, String eventType, String eventDuration, Integer guests, String startTime, String endTime) {
+    public void sendApprovalEmail(String recipientEmail, String employeeName) {
         try {
-            if (recipientEmail == null || recipientEmail.trim().isEmpty()) return;
+            if (recipientEmail == null || recipientEmail.trim().isEmpty()) {
+                System.err.println("Cannot send approval email: Recipient email is empty or null");
+                return;
+            }
+            
+            SimpleMailMessage message = new SimpleMailMessage();
+            
+            message.setFrom(FROM_EMAIL);
+            message.setTo(recipientEmail);
+            message.setSubject("Request Approved - Malda Railway Institute");
+            message.setText(
+                    "Dear " + employeeName +
+                            ",\n\nYour request has been fully approved by Sr. DPO.\n\n" +
+                            "Request Status: APPROVED\n\n" +
+                            "Regards,\nMalda Railway Institute Administration\n\n" +
+                            "This is an automated email. Please do not reply.");
+
+            mailSender.send(message);
+            System.out.println("✓ Approval email sent successfully to: " + recipientEmail);
+        } catch (Exception e) {
+            System.err.println("✗ Failed to send approval email to " + recipientEmail + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Async
+    public void sendRejectionEmail(String recipientEmail, String employeeName) {
+        try {
+            if (recipientEmail == null || recipientEmail.trim().isEmpty()) {
+                System.err.println("Cannot send rejection email: Recipient email is empty or null");
+                return;
+            }
+            
+            SimpleMailMessage message = new SimpleMailMessage();
+            
+            message.setFrom(FROM_EMAIL);
+            message.setTo(recipientEmail);
+            message.setSubject("Request Rejected - Malda Railway Institute");
+            message.setText(
+                    "Dear " + employeeName +
+                            ",\n\nUnfortunately, your request has been rejected during the approval process.\n\n" +
+                            "Request Status: REJECTED\n\n" +
+                            "If you have any queries, please contact the administration.\n\n" +
+                            "Regards,\nMalda Railway Institute Administration\n\n" +
+                            "This is an automated email. Please do not reply.");
+
+            mailSender.send(message);
+            System.out.println("✓ Rejection email sent successfully to: " + recipientEmail);
+        } catch (Exception e) {
+            System.err.println("✗ Failed to send rejection email to " + recipientEmail + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Async
+    public void sendBookingApprovalEmail(
+                String recipientEmail,
+                String name,
+                String instituteName,
+                String bookingDate,
+                String purpose,
+                String entryId,
+                String facilities,
+                String specialRequirements,
+                String eventType,
+                String eventDuration,
+                Integer guests,
+                String startTime,
+                String endTime) {
+
+        try {
+            if (recipientEmail == null || recipientEmail.trim().isEmpty()) {
+                System.err.println("Cannot send booking approval email: Recipient email is empty or null");
+                return;
+            }
+
+            // Validate required parameters
+            if (name == null || name.trim().isEmpty()) {
+                System.err.println("Cannot send booking approval email: Name is empty or null");
+                return;
+            }
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+            helper.setFrom(FROM_EMAIL);
+            helper.setTo(recipientEmail);
+            helper.setSubject("Booking Request Approved - Malda Railway Institute");
+
+            // Enhanced email body with key details
+            String emailBody = String.format(
+                "Dear %s,\n\n" +
+                "We are pleased to inform you that your booking request for Malda Railway Institute has been successfully approved.\n\n" +
+                "Booking Details:\n" +
+                "• Booking ID: %s\n" +
+                "• Institute: %s\n" +
+                "• Date: %s\n" +
+                "• Purpose: %s\n" +
+                "• Venue: %s\n\n" +
+                "Please find attached the detailed booking confirmation PDF for your records.\n\n" +
+                "Important Notes:\n" +
+                "• Please arrive 15 minutes before the scheduled time\n" +
+                "• Bring a valid ID proof for verification\n" +
+                "• Contact the institute administration for any changes\n\n" +
+                "Best regards,\n" +
+                "Malda Division Railway Institute\n" +
+                "Eastern Railway\n\n" +
+                "This is an automated email. Please do not reply.",
+                name, entryId, instituteName, bookingDate, purpose, facilities
+            );
+
+            helper.setText(emailBody);
 
             // ==================================================
-            // PDF GENERATION (Your Original Logic)
+            // PDF GENERATION ONLY
             // ==================================================
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
             PDDocument document = new PDDocument();
             PDPage page = new PDPage();
             document.addPage(page);
+
             PDPageContentStream content = new PDPageContentStream(document, page);
 
+            // ===============================================
+        // OUTER BORDER (Premium Official Look)
+            // ===============================================
             content.setLineWidth(1f);
             content.addRect(25, 25, 545, 742);
             content.stroke();
 
             float y = 770;
+
+        // ===============================================
+        // HEADER
+        // ===============================================
             content.beginText();
             content.setFont(PDType1Font.HELVETICA_BOLD, 24);
             content.newLineAtOffset(150, y);
             content.showText("EASTERN RAILWAY");
             content.endText();
 
-            // ... [Keep the rest of your PDPageContentStream logic here] ...
+            y -= 28;
+
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+            content.newLineAtOffset(135, y);
+            content.showText("MALDA RAILWAY INSTITUTE");
+            content.endText();
+
+            y -= 22;
+
+        // Header Line
+            content.moveTo(40, y);
+            content.lineTo(555, y);
+            content.stroke();
+
+            y -= 30;
+
+        // ===============================================
+        // TITLE
+        // ===============================================
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_BOLD, 18);
+            content.newLineAtOffset(145, y);
+            content.showText("BOOKING CONFIRMATION");
+            content.endText();
+
+            y -= 20;
+
+            // Title Line
+            content.moveTo(40, y);
+            content.lineTo(555, y);
+            content.stroke();
+
+            y -= 30;
+
+        // ===============================================
+        // DETAILS
+        // ===============================================
+            content.beginText();
+            content.setFont(PDType1Font.TIMES_ROMAN, 16);
+            content.setLeading(18f);
+            content.newLineAtOffset(50, y);
+
+            content.showText("Booking ID               : " + entryId);
+            content.newLine();
+
+            content.showText("Guest Name              : " + name);
+            content.newLine();
+
+            content.showText("Institute                 : " + instituteName);
+            content.newLine();
+
+            content.showText("Booking Date            : " + bookingDate);
+            content.newLine();
+
+            content.showText("Purpose                   : " + purpose);
+            content.newLine();
+
+            content.showText("Venue                      : " + facilities);
+            content.newLine();
+
+            content.showText("Event Type              : " + eventType);
+            content.newLine();
+
+            content.showText("Event Duration         : " + eventDuration);
+            content.newLine();
+
+            content.showText("Guests                     : " + guests);
+            content.newLine();
+
+            content.showText("Start Time              : " + startTime);
+            content.newLine();
+
+            content.showText("End Time                : " + endTime);
+            content.newLine();
+
+            content.showText("Special Requirements    : " + (specialRequirements != null && !specialRequirements.trim().isEmpty() ? specialRequirements : "None"));
+            content.newLine();
+            content.newLine();
+
+            content.endText();
+            
+
+        // ===============================================
+        // NOTICE SECTION
+        // ===============================================
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_OBLIQUE, 11);
+            content.setLeading(14f);
+            content.newLineAtOffset(145, 180);
+
+            content.showText("System Generated Document");
+            content.newLine();
+
+            content.showText("No Physical Signature Required");
+            content.newLine();
+
+            content.showText("Bring This PDF for Entry and Verification");
+
+            content.endText();
+
+        // ===============================================
+        // FOOTER LINE
+        // ===============================================
+            content.moveTo(40, 100);
+            content.lineTo(555, 100);
+            content.stroke();
+
+            // ===============================================
+            // FOOTER SIGNATURE SECTION
+            // ===============================================
+            float footerY = 78;
+
+            // Left side Name
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_BOLD, 12);
+            content.newLineAtOffset(50, footerY);
+            content.showText("R. K. Sharma");
+            content.endText();
+
+        // Designation
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA, 10);
+            content.newLineAtOffset(50, footerY - 16);
+            content.showText("Senior Divisional Personnel Officer");
+            content.endText();
+
+// Right side Date Time
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA, 10);
+            content.newLineAtOffset(360, footerY);
+            content.showText(
+                    "Date: " +
+                            java.time.LocalDateTime.now()
+                                    .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a"))
+            );
+            content.endText();
 
             content.close();
             document.save(outputStream);
             document.close();
 
-            // ==================================================
-            // BREVO API CALL (The Fix for Render)
-            // ==================================================
-            byte[] pdfBytes = outputStream.toByteArray();
-            String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
 
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("api-key", apiKey);
+            ByteArrayDataSource dataSource =
+                    new ByteArrayDataSource(outputStream.toByteArray(), "application/pdf");
 
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("sender", Map.of("name", "Malda Railway Institute", "email", FROM_EMAIL));
-            requestBody.put("to", List.of(Map.of("email", recipientEmail, "name", name)));
-            requestBody.put("subject", "Booking Request Approved - Malda Railway Institute");
-            requestBody.put("htmlContent", "<html><body><p>Dear " + name + ", your booking is approved. See attached PDF.</p></body></html>");
-            
-            // Attach PDF via Base64
-            requestBody.put("attachment", List.of(Map.of(
-                "content", base64Pdf,
-                "name", "Booking_Confirmation.pdf"
-            )));
+            helper.addAttachment("Booking_Confirmation.pdf", dataSource);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-            restTemplate.postForEntity(BREVO_API_URL, entity, String.class);
+            // ===============================================
+            // SEND MAIL
+            // ===============================================
+            mailSender.send(message);
 
-            System.out.println("✓ Email sent successfully via Brevo API to: " + recipientEmail);
+            System.out.println("✓ Booking approval email with PDF sent successfully to: " + recipientEmail);
 
         } catch (Exception e) {
-            System.err.println("✗ Failed to send email via API: " + e.getMessage());
+            System.err.println("✗ Failed to send booking approval email to " + recipientEmail + ": " + e.getMessage());
             e.printStackTrace();
         }
-    }
-}
+    }}
