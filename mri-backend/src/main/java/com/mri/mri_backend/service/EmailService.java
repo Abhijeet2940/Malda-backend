@@ -248,6 +248,8 @@ public class EmailService {
             content.showText("Special Requirements    : " + (specialRequirements != null && !specialRequirements.trim().isEmpty() ? specialRequirements : "None"));
             content.newLine();
             content.newLine();
+
+            
             content.endText();
             
         // ===============================================
