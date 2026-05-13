@@ -18,7 +18,7 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 public class EmailService {
 
     private final JavaMailSender mailSender;
-    private static final String FROM_EMAIL = "notifications@mri.indianrailways.gov.in";
+    private static final String FROM_EMAIL = "info.maldarailwayinstitute@gmail.com";
 
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
