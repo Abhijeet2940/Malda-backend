@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+
 public class RequestCreationDTO {
     // Institute & Booking Info
     private String institute;
@@ -13,6 +15,8 @@ public class RequestCreationDTO {
     private Integer guests;
     private String eventType;
     private String eventDuration;
+    private LocalDate bookingEndDate;
+    private List<LocalDate> bookingDates;
 
     // Personal Information
     private String firstName;
@@ -136,6 +140,22 @@ public class RequestCreationDTO {
 
     public void setEventDuration(String eventDuration) {
         this.eventDuration = eventDuration;
+    }
+
+    public LocalDate getBookingEndDate() {
+        return bookingEndDate;
+    }
+
+    public void setBookingEndDate(LocalDate bookingEndDate) {
+        this.bookingEndDate = bookingEndDate;
+    }
+
+    public List<LocalDate> getBookingDates() {
+        return bookingDates;
+    }
+
+    public void setBookingDates(List<LocalDate> bookingDates) {
+        this.bookingDates = bookingDates;
     }
 
     public String getFirstName() {
