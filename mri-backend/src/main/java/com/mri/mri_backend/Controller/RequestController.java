@@ -324,4 +324,19 @@ public class RequestController {
             return ResponseEntity.status(500).build();
         }
     }
+
+    // Delete a request (and cleanup associated blocked dates)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteRequest(@PathVariable Long id) {
+        try {
+            requestService.deleteRequest(id);
+            return ResponseEntity.ok("Request deleted successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Failed to delete request " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Failed to delete request: " + e.getMessage());
+        }
+    }
 }
