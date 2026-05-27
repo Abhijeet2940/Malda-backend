@@ -22,6 +22,7 @@ public class Request {
     private FacilityType facilityType;
 
     private LocalDate bookingDate;
+    private LocalDate bookingEndDate;
     private LocalTime startTime;
     private LocalTime endTime;
     private Integer durationHours;
@@ -158,6 +159,14 @@ public class Request {
 
     public void setBookingDate(LocalDate bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public LocalDate getBookingEndDate() {
+        return bookingEndDate;
+    }
+
+    public void setBookingEndDate(LocalDate bookingEndDate) {
+        this.bookingEndDate = bookingEndDate;
     }
 
     public LocalTime getStartTime() {
