@@ -65,6 +65,8 @@ public class RequestController {
             @RequestParam(value = "guarantorEmployeeId", required = false) String guarantorEmployeeId,
             @RequestParam(value = "guarantorPhone", required = false) String guarantorPhone,
             @RequestParam(value = "ppoNumber", required = false) String ppoNumber,
+            @RequestParam(value = "bookingEndDate", required = false) String bookingEndDate,
+            @RequestParam(value = "bookingDates", required = false) String bookingDates,
             @RequestParam("refNo") String refNo,
             @RequestParam("amountPaid") String amountPaid,
             @RequestParam("accountNo") String accountNo,
@@ -102,6 +104,26 @@ public class RequestController {
             dto.setEventDuration(eventDuration);
             dto.setFacilities(java.util.Arrays.asList(facilities.split(",")));
             dto.setSpecialRequirements(specialRequirements);
+            if (bookingEndDate != null && !bookingEndDate.isBlank()) {
+                dto.setBookingEndDate(java.time.LocalDate.parse(bookingEndDate));
+            }
+            if (bookingDates != null && !bookingDates.isBlank()) {
+                try {
+                    java.util.List<String> rawDates = new ObjectMapper().readValue(bookingDates, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {});
+                    java.util.List<java.time.LocalDate> parsedDates = new java.util.ArrayList<>();
+                    for (String rawDate : rawDates) {
+                        if (rawDate != null && !rawDate.isBlank()) {
+                            parsedDates.add(java.time.LocalDate.parse(rawDate));
+                        }
+                    }
+                    dto.setBookingDates(parsedDates);
+                    if (!parsedDates.isEmpty() && dto.getBookingEndDate() == null) {
+                        dto.setBookingEndDate(parsedDates.get(parsedDates.size() - 1));
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to parse bookingDates JSON: " + e.getMessage());
+                }
+            }
             dto.setRequestDate(java.time.LocalDate.parse(requestDate));
 
             System.out.println("✅ DTO fields populated successfully");
@@ -157,6 +179,17 @@ public class RequestController {
     @GetMapping
     public List<RequestDTO> getAllRequests() {
         return requestService.getAllRequests();
+    }
+
+    @PostMapping("/{id}/notify/submit")
+    public ResponseEntity<String> notifySubmissionEmail(@PathVariable Long id) {
+        try {
+            requestService.sendBookingSubmissionNotification(id);
+            return ResponseEntity.ok("Submission notification email sent successfully.");
+        } catch (Exception e) {
+            System.err.println("Failed to send submission notification: " + e.getMessage());
+            return ResponseEntity.status(500).body("Failed to send submission notification email.");
+        }
     }
 
     // OS Level
