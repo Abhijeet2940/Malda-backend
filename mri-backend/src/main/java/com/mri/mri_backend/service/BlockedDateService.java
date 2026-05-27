@@ -42,6 +42,17 @@ public class BlockedDateService {
         return blockedDateRepository.save(blockedDateEntity);
     }
 
+    public void blockDateRange(String institute, LocalDate startDate, LocalDate endDate, String blockedBy, String reason) {
+        LocalDate current = startDate;
+        while (current.isBefore(endDate) || current.isEqual(endDate)) {
+            if (!isDateBlocked(institute, current)) {
+                BlockedDate blockedDateEntity = new BlockedDate(institute, current, blockedBy, reason);
+                blockedDateRepository.save(blockedDateEntity);
+            }
+            current = current.plusDays(1);
+        }
+    }
+
     public void unblockDate(String institute, LocalDate blockedDate) {
         List<BlockedDate> blockedDates = blockedDateRepository.findByInstituteAndBlockedDate(institute, blockedDate);
         if (!blockedDates.isEmpty()) {
