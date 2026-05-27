@@ -586,4 +586,30 @@ public class RequestService {
             request.getPurpose()
         );
     }
+
+    // Delete a request and unblock any blocked dates reserved for it
+    public void deleteRequest(Long requestId) {
+        Request request = requestRepository.findById(requestId).orElseThrow(() ->
+            new IllegalArgumentException("Request not found with id: " + requestId));
+
+        // If booking dates were blocked for this request, remove those blocked dates
+        try {
+            if (request.getBookingDate() != null) {
+                if (request.getBookingEndDate() != null && request.getBookingEndDate().isAfter(request.getBookingDate())) {
+                    java.time.LocalDate current = request.getBookingDate();
+                    while (!current.isAfter(request.getBookingEndDate())) {
+                        blockedDateService.unblockDate(request.getInstitute(), current);
+                        current = current.plusDays(1);
+                    }
+                } else {
+                    blockedDateService.unblockDate(request.getInstitute(), request.getBookingDate());
+                }
+            }
+        } catch (Exception ex) {
+            // Log and continue with deletion
+            System.err.println("Error while unblocking dates for request " + requestId + ": " + ex.getMessage());
+        }
+
+        requestRepository.deleteById(requestId);
+    }
 }
