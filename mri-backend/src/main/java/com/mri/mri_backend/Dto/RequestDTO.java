@@ -14,6 +14,7 @@ public class RequestDTO {
     // Institute & Booking Info
     private String institute;
     private LocalDate bookingDate;
+    private LocalDate bookingEndDate;
     private String purpose;
     private String bookingCategory;
     private Integer guests;
@@ -117,6 +118,14 @@ public class RequestDTO {
 
     public void setBookingDate(LocalDate bookingDate) {
         this.bookingDate = bookingDate;
+    }
+
+    public LocalDate getBookingEndDate() {
+        return bookingEndDate;
+    }
+
+    public void setBookingEndDate(LocalDate bookingEndDate) {
+        this.bookingEndDate = bookingEndDate;
     }
 
     public String getPurpose() {
