@@ -44,12 +44,46 @@ public class RequestService {
                 throw new IllegalArgumentException("The selected booking date is blocked for this institute");
             }
 
+            // Check if all booking dates in the range are available (for multi-day bookings)
+            if (requestCreationDTO.getBookingEndDate() != null && 
+                requestCreationDTO.getBookingEndDate().isAfter(requestCreationDTO.getBookingDate())) {
+                
+                List<BlockedDate> blockedInRange = blockedDateService.getBlockedDatesInRange(
+                    requestCreationDTO.getInstitute(),
+                    requestCreationDTO.getBookingDate(),
+                    requestCreationDTO.getBookingEndDate()
+                );
+
+                if (!blockedInRange.isEmpty()) {
+                    // One or more blocked date entities exist in the requested range
+                    throw new IllegalArgumentException("Some dates in the booking range are blocked for this institute");
+                }
+                
+                // Block all dates in the range for this booking
+                blockedDateService.blockDateRange(
+                    requestCreationDTO.getInstitute(),
+                    requestCreationDTO.getBookingDate(),
+                    requestCreationDTO.getBookingEndDate(),
+                    "System - Booking Confirmed",
+                    "Booking Request #" + System.currentTimeMillis()
+                );
+            } else {
+                // Single-day booking - block that date
+                blockedDateService.blockDate(
+                    requestCreationDTO.getInstitute(),
+                    requestCreationDTO.getBookingDate(),
+                    "System - Booking Confirmed",
+                    "Booking Request #" + System.currentTimeMillis()
+                );
+            }
+
             Request request = new Request();
 
             // Institute & Booking Info
             System.out.println("Setting institute and booking info...");
             request.setInstitute(requestCreationDTO.getInstitute());
             request.setBookingDate(requestCreationDTO.getBookingDate());
+            request.setBookingEndDate(requestCreationDTO.getBookingEndDate());
             request.setPurpose(requestCreationDTO.getPurpose());
             request.setBookingCategory(requestCreationDTO.getBookingCategory());
             request.setGuests(requestCreationDTO.getGuests());
@@ -330,7 +364,8 @@ public class RequestService {
             request.getEventDuration(),
             request.getGuests(),
             request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
-            request.getEndTime() != null ? request.getEndTime().toString() : "N/A"
+            request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
+            request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : ""
         );
 
         return convertToDTO(savedRequest);
@@ -411,7 +446,8 @@ public class RequestService {
                 request.getEventDuration(),
                 request.getGuests(),
                 request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
-                request.getEndTime() != null ? request.getEndTime().toString() : "N/A"
+                request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
+                request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : ""
             );
         } else {
             throw new IllegalArgumentException("Unknown status: " + status);
@@ -448,6 +484,7 @@ public class RequestService {
         // Institute & Booking Info
         dto.setInstitute(request.getInstitute());
         dto.setBookingDate(request.getBookingDate());
+        dto.setBookingEndDate(request.getBookingEndDate());
         dto.setPurpose(request.getPurpose());
         dto.setBookingCategory(request.getBookingCategory());
         dto.setGuests(request.getGuests());
@@ -533,5 +570,20 @@ public class RequestService {
         dto.setCurrentApprovalLevel(request.getCurrentApprovalLevel());
 
         return dto;
+    }
+
+    public void sendBookingSubmissionNotification(Long requestId) {
+        Request request = requestRepository.findById(requestId).orElseThrow(() ->
+            new IllegalArgumentException("Request not found with id: " + requestId));
+        
+        emailService.sendBookingSubmissionEmail(
+            request.getApplicantEmail(),
+            request.getApplicantFirstName() + " " + request.getApplicantLastName(),
+            request.getRequestId().toString(),
+            request.getInstitute(),
+            request.getBookingDate().toString(),
+            request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : null,
+            request.getPurpose()
+        );
     }
 }
