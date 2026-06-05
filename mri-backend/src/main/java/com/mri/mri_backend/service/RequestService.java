@@ -351,24 +351,23 @@ public class RequestService {
         Request savedRequest = requestRepository.save(request);
 
         // Send approval email to applicant
-        // Send approval email to applicant
-emailService.sendBookingApprovalEmail(
-    request.getApplicantEmail(),
-    request.getApplicantFirstName() + " " + request.getApplicantLastName(),
-    request.getInstitute().toString(),
-    request.getBookingDate().toString(),
-    request.getPurpose(),
-    request.getRequestId().toString(),
-    request.getAadhaarNumber(),
-    request.getBookingCategory(),
-    request.getFacilities(),
-    request.getSpecialRequirements(),
-    Integer.parseInt(request.getEventType()), // 11th arg: Parsed to Integer
-    request.getEventDuration(),
-    request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
-    request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
-    request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : "" // 15th arg: Passed safely
-);
+        emailService.sendBookingApprovalEmail(
+            request.getApplicantEmail(),
+            request.getApplicantFirstName() + " " + request.getApplicantLastName(),
+            request.getInstitute().toString(),
+            request.getBookingDate().toString(),
+            request.getPurpose(),
+            request.getRequestId().toString(),
+            request.getAadhaarNumber(),
+            request.getBookingCategory(),
+            request.getFacilities(),
+            request.getSpecialRequirements(),
+            request.getEventType(),
+            request.getEventDuration(),
+            request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
+            request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
+            request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : ""
+        );
 
         return convertToDTO(savedRequest);
     }
