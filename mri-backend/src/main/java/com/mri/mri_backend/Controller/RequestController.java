@@ -339,4 +339,12 @@ public class RequestController {
             return ResponseEntity.status(500).body("Failed to delete request: " + e.getMessage());
         }
     }
+
+    // Revert booking back to previous approval level
+    @PutMapping("/{id}/revert")
+    public RequestDTO revertBookingStatus(
+            @PathVariable Long id,
+            @RequestBody ApprovalRequestDTO approvalRequest) {
+        return requestService.revertBookingStatus(id, approvalRequest);
+    }
 }
