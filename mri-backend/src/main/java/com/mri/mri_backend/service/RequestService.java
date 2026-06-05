@@ -358,11 +358,12 @@ public class RequestService {
             request.getBookingDate().toString(),
             request.getPurpose(),
             request.getRequestId().toString(),
+            request.getAadhaarNumber(),
+            request.getBookingCategory(),
             request.getFacilities(),
             request.getSpecialRequirements(),
             request.getEventType(),
             request.getEventDuration(),
-            request.getGuests(),
             request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
             request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
             request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : ""
@@ -440,11 +441,12 @@ public class RequestService {
                 request.getBookingDate().toString(),
                 request.getPurpose(),
                 request.getRequestId().toString(),
+                request.getAadhaarNumber(),
+                request.getBookingCategory(),
                 request.getFacilities(),
                 request.getSpecialRequirements(),
                 request.getEventType(),
                 request.getEventDuration(),
-                request.getGuests(),
                 request.getStartTime() != null ? request.getStartTime().toString() : "N/A",
                 request.getEndTime() != null ? request.getEndTime().toString() : "N/A",
                 request.getBookingEndDate() != null ? request.getBookingEndDate().toString() : ""
@@ -611,5 +613,62 @@ public class RequestService {
         }
 
         requestRepository.deleteById(requestId);
+    }
+
+    // Revert booking back to previous approval level (for DPO and SR-DPO)
+    public RequestDTO revertBookingStatus(Long requestId, ApprovalRequestDTO approvalRequest) {
+        Request request = requestRepository.findById(requestId).orElseThrow(() ->
+            new IllegalArgumentException("Request not found with id: " + requestId));
+
+        if (approvalRequest.getApprovalEntry() == null || approvalRequest.getApprovalEntry().getRemark() == null || approvalRequest.getApprovalEntry().getRemark().trim().isEmpty()) {
+            throw new IllegalArgumentException("Remark is required for revert.");
+        }
+
+        ApprovalEntryDTO entry = approvalRequest.getApprovalEntry();
+        String role = approvalRequest.getRole();
+
+        if (role == null || role.trim().isEmpty()) {
+            throw new IllegalArgumentException("Role is required for revert.");
+        }
+
+        // Build or append approval history
+        List<ApprovalEntryDTO> historyEntries = new ArrayList<>();
+        if (request.getApprovalHistory() != null && !request.getApprovalHistory().isEmpty()) {
+            try {
+                historyEntries = new ObjectMapper().readValue(request.getApprovalHistory(),
+                        new com.fasterxml.jackson.core.type.TypeReference<List<ApprovalEntryDTO>>() {});
+            } catch (Exception e) {
+                historyEntries = new ArrayList<>();
+            }
+        }
+
+        historyEntries.add(entry);
+        try {
+            request.setApprovalHistory(new ObjectMapper().writeValueAsString(historyEntries));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize approval history: " + e.getMessage(), e);
+        }
+
+        // Revert based on current role and status
+        if (role.equalsIgnoreCase("dpo")) {
+            if (request.getApprovalStatus() != ApprovalStatus.WI_APPROVED) {
+                throw new IllegalArgumentException("Can only revert DPO when status is WI_APPROVED. Current status: " + request.getApprovalStatus());
+            }
+            // Revert DPO → back to OS_APPROVED (WI level)
+            request.setApprovalStatus(ApprovalStatus.OS_APPROVED);
+            request.setCurrentApprovalLevel(ApprovalLevel.WI);
+        } else if (role.equalsIgnoreCase("sr-dpo")) {
+            if (request.getApprovalStatus() != ApprovalStatus.DPO_APPROVED) {
+                throw new IllegalArgumentException("Can only revert SR-DPO when status is DPO_APPROVED. Current status: " + request.getApprovalStatus());
+            }
+            // Revert SR-DPO → back to WI_APPROVED (DPO level)
+            request.setApprovalStatus(ApprovalStatus.WI_APPROVED);
+            request.setCurrentApprovalLevel(ApprovalLevel.DPO);
+        } else {
+            throw new IllegalArgumentException("Revert is only allowed for DPO and SR-DPO roles. Current role: " + role);
+        }
+
+        Request savedRequest = requestRepository.save(request);
+        return convertToDTO(savedRequest);
     }
 }
