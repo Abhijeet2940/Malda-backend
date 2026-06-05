@@ -15,7 +15,6 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.core.io.ClassPathResource;
-import java.io.IOException;
 
 @Service
 public class EmailService {
@@ -162,11 +161,12 @@ public class EmailService {
                 String bookingDate,
                 String purpose,
                 String entryId,
+                String aadhaarNumber,
+                String bookingCategory,
                 String facilities,
                 String specialRequirements,
                 String eventType,
                 String eventDuration,
-                Integer guests,
                 String startTime,
                 String endTime,
                 String bookingEndDate) {
@@ -207,7 +207,7 @@ public class EmailService {
                 "• Institute: %s\n" +
                 "• Date: %s\n" +
                 "• Purpose: %s\n" +
-                "• Venue: %s\n\n" +
+                "• Aadhaar Number: %s\n\n" +
                 "Please find attached the detailed booking confirmation PDF for your records.\n\n" +
                 "Important Notes:\n" +
                 "• Please arrive 15 minutes before the scheduled time\n" +
@@ -217,7 +217,7 @@ public class EmailService {
                 "Malda Division Railway Institute\n" +
                 "Eastern Railway\n\n" +
                 "This is an automated email. Please do not reply.",
-                name, entryId, instituteName, bookingDate, purpose, facilities
+                name, entryId, instituteName, bookingDate, purpose, aadhaarNumber
             );
 
             helper.setText(emailBody);
@@ -243,25 +243,35 @@ public class EmailService {
             float y = 770;
 
         // ===============================================
-        // HEADER
+        // HEADER - EASTERN RAILWAY (centered)
         // ===============================================
             content.beginText();
-            content.setFont(PDType1Font.HELVETICA_BOLD, 24);
-            content.newLineAtOffset(150, y);
+            content.setFont(PDType1Font.HELVETICA_BOLD, 22);
+            content.newLineAtOffset(200, y);
             content.showText("EASTERN RAILWAY");
             content.endText();
 
             y -= 28;
 
+            // First divider line
+            content.moveTo(40, y);
+            content.lineTo(555, y);
+            content.stroke();
+
+            y -= 20;
+
+        // ===============================================
+        // HEADER - RAILWAY INSTITUTE, MALDA (centered)
+        // ===============================================
             content.beginText();
-            content.setFont(PDType1Font.HELVETICA_BOLD, 18);
-            content.newLineAtOffset(135, y);
-            content.showText("MALDA RAILWAY INSTITUTE");
+            content.setFont(PDType1Font.HELVETICA_BOLD, 22);
+            content.newLineAtOffset(180, y);
+            content.showText("RAILWAY INSTITUTE, MALDA");
             content.endText();
 
             y -= 22;
 
-        // Header Line
+            // Second divider line
             content.moveTo(40, y);
             content.lineTo(555, y);
             content.stroke();
@@ -290,119 +300,118 @@ public class EmailService {
         // DETAILS
         // ===============================================
             content.beginText();
-            content.setFont(PDType1Font.TIMES_ROMAN, 16);
+            content.setFont(PDType1Font.TIMES_ROMAN, 14);
             content.setLeading(18f);
-            content.newLineAtOffset(50, y);
+            content.newLineAtOffset(48, y);
 
             content.showText("Booking ID");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             content.showText(": " + entryId);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Guest Name");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             content.showText(": " + name);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Institute");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             String instituteDisplay = instituteName != null ? instituteName.toUpperCase() + " RAILWAY INSTITUTE" : "N/A";
             content.showText(": " + instituteDisplay);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(-170, -20);
 
             // Format booking date(s) based on event duration
             String dateDisplay = bookingDate;
-            if (eventDuration != null) {
-                String duration = eventDuration.toLowerCase().trim();
-                if (duration.contains("2") || duration.equals("2 day") || duration.equals("2days")) {
-                    // Multi-day: show start date and end date
-                    if (bookingEndDate != null && !bookingEndDate.trim().isEmpty()) {
-                        dateDisplay = bookingDate + " to " + bookingEndDate;
-                    }
+            try {
+                java.time.LocalDate startDate = java.time.LocalDate.parse(bookingDate);
+                java.time.LocalDate endDate = (bookingEndDate != null && !bookingEndDate.trim().isEmpty()) ? java.time.LocalDate.parse(bookingEndDate) : startDate;
+
+                if (eventDuration != null && eventDuration.toLowerCase().contains("2")) {
+                    dateDisplay = startDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy")) + " to " + endDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
                 } else {
-                    // Single day: show only booking date
-                    dateDisplay = bookingDate;
+                    dateDisplay = startDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
                 }
+
+                // Compute attractive start and end times: start = startDate 10:00 AM, end = (endDate + 1 day) 10:00 AM
+                java.time.LocalDateTime startDateTime = startDate.atTime(10, 0);
+                java.time.LocalDateTime endDateTime = endDate.plusDays(1).atTime(10, 0);
+                java.time.format.DateTimeFormatter dtfLocal = java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+                startTime = startDateTime.format(dtfLocal);
+                endTime = endDateTime.format(dtfLocal);
+            } catch (Exception ex) {
+                // Fallback to provided strings
             }
 
             content.showText("Booking Date");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             content.showText(": " + dateDisplay);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Purpose");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             content.showText(": " + purpose);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(-170, -20);
 
-            content.showText("Venue");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + facilities);
-            content.newLineAtOffset(-160, -18);
+            content.showText("Aadhaar Number");
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (aadhaarNumber != null ? aadhaarNumber : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Event Type");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + eventType);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (eventType != null ? eventType : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Event Duration");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + eventDuration);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (eventDuration != null ? eventDuration + " DAY(S)" : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
-            content.showText("Guests");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + guests);
-            content.newLineAtOffset(-160, -18);
+            content.showText("Booking Category");
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (bookingCategory != null ? bookingCategory : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Start Time");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + startTime);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (startTime != null ? startTime : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
             content.showText("End Time");
-            content.newLineAtOffset(160, 0);
-            content.showText(": " + endTime);
-            content.newLineAtOffset(-160, -18);
+            content.newLineAtOffset(170, 0);
+            content.showText(": " + (endTime != null ? endTime : "N/A"));
+            content.newLineAtOffset(-170, -20);
 
             content.showText("Special Requirements");
-            content.newLineAtOffset(160, 0);
+            content.newLineAtOffset(170, 0);
             content.showText(": " + (specialRequirements != null && !specialRequirements.trim().isEmpty() ? specialRequirements : "None"));
-
             content.endText();
 
-
-        // ===============================================
-        // NOTICE SECTION
-        // ===============================================
+            // ===============================================
+            // HIGHLIGHT SECTION - 2 lines below Special Requirements
+            // ===============================================
+            float highlightY = y - (9 * 20) - 40; // Position 2 lines below special requirements
+            
             content.beginText();
-            content.setFont(PDType1Font.HELVETICA_OBLIQUE, 11);
-            content.setLeading(14f);
-            content.newLineAtOffset(145, 180);
-
-            content.showText("System Generated Document");
-            content.newLine();
-
-            content.showText("No Physical Signature Required");
-            content.newLine();
-
-            content.showText("Bring This PDF for Entry and Verification");
-
+            content.setFont(PDType1Font.HELVETICA_BOLD, 12);
+            content.newLineAtOffset(100, highlightY);
+            content.showText("⚠ Please carry a valid ID proof along with this PDF for entry verification");
             content.endText();
 
-        // ===============================================
-        // FOOTER LINE
-        // ===============================================
+
+            // ===============================================
+            // FOOTER LINE
+            // ===============================================
             content.moveTo(40, 100);
             content.lineTo(555, 100);
             content.stroke();
 
             // ===============================================
-            // FOOTER SIGNATURE SECTION WITH IMAGE
+            // FOOTER SIGNATURE (placed above a divider on the right)
             // ===============================================
-            float footerY = 78;
+            float footerY = 118;
 
-            // Load and embed signature image from resources
+            // Load and embed signature image from resources and place it to the RIGHT
             try {
                 ClassPathResource signatureResource = new ClassPathResource("Asset/SrDPO_signature.jpeg");
                 if (signatureResource.exists()) {
@@ -410,52 +419,43 @@ public class EmailService {
                             signatureResource.getFile(),
                             document
                     );
-                    // Draw signature image on the left side (width: 80, height: 50)
-                    content.drawImage(signatureImage, 50, footerY - 50, 80, 50);
-                    
-                    // Add designation below signature
-                    content.beginText();
-                    content.setFont(PDType1Font.HELVETICA, 10);
-                    content.newLineAtOffset(50, footerY - 70);
-                    content.endText();
+                    // Place signature on the right side
+                    float sigWidth = 120f;
+                    float sigHeight = 60f;
+                    float sigX = 360f;
+                    float sigY = footerY + 18f;
+                    content.drawImage(signatureImage, sigX, sigY, sigWidth, sigHeight);
                 } else {
                     System.err.println("Signature image not found at Asset/SrDPO_signature.jpeg");
-                    // Fallback to text if image not found
-                    content.beginText();
-                    content.setFont(PDType1Font.HELVETICA_BOLD, 12);
-                    content.newLineAtOffset(50, footerY);
-                    content.showText("R. K. Sharma");
-                    content.endText();
-                    content.beginText();
-                    content.setFont(PDType1Font.HELVETICA, 10);
-                    content.newLineAtOffset(50, footerY - 16);
-                    content.showText("Senior Divisional Personnel Officer");
-                    content.endText();
                 }
             } catch (Exception e) {
                 System.err.println("Error loading signature image: " + e.getMessage());
-                // Fallback to text if image loading fails
-                content.beginText();
-                content.setFont(PDType1Font.HELVETICA_BOLD, 12);
-                content.newLineAtOffset(50, footerY);
-                content.showText("R. K. Sharma");
-                content.endText();
-                content.beginText();
-                content.setFont(PDType1Font.HELVETICA, 10);
-                content.newLineAtOffset(50, footerY - 16);
-                content.showText("Senior Divisional Personnel Officer");
-                content.endText();
             }
 
-            // Right side Date Time
+            // Divider line below signature
+            content.moveTo(40, footerY - 30);
+            content.lineTo(555, footerY - 30);
+            content.stroke();
+
+            // ===============================================
+            // DATE (on the left below divider)
+            // ===============================================
+            java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
             content.beginText();
             content.setFont(PDType1Font.HELVETICA, 10);
-            content.newLineAtOffset(360, footerY);
-            content.showText(
-                    "Date: " +
-                            java.time.LocalDateTime.now()
-                                    .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a"))
-            );
+            content.newLineAtOffset(50, footerY - 50);
+            content.showText("Date: " + java.time.LocalDateTime.now().format(dtf));
+            content.endText();
+
+            // ===============================================
+            // NOTICE SECTION - Center Aligned on Last Line
+            // ===============================================
+            float noticeY = 28f;
+
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_OBLIQUE, 10);
+            content.newLineAtOffset(215, noticeY);
+            content.showText("System Generated Document");
             content.endText();
 
             content.close();
