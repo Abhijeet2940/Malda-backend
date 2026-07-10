@@ -392,11 +392,11 @@ public class EmailService {
             // ===============================================
             float highlightY = y - (9 * 20) - 40; // Position 2 lines below special requirements
             
-            content.beginText();
-            content.setFont(PDType1Font.HELVETICA_BOLD, 12);
-            content.newLineAtOffset(100, highlightY);
-            content.showText(" Please carry a valid ID proof along with this PDF for entry verification");
-            content.endText();
+          content.beginText();
+          content.setFont(PDType1Font.HELVETICA_BOLD, 12);
+          content.newLineAtOffset(100, highlightY);
+          content.showText("IMPORTANT: Please carry a valid ID proof along with this PDF for entry verification");
+          content.endText();
 
 
             // ===============================================
