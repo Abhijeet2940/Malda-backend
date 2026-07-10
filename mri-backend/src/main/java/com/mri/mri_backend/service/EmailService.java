@@ -395,7 +395,7 @@ public class EmailService {
             content.beginText();
             content.setFont(PDType1Font.HELVETICA_BOLD, 12);
             content.newLineAtOffset(100, highlightY);
-            content.showText("⚠ Please carry a valid ID proof along with this PDF for entry verification");
+            content.showText(" Please carry a valid ID proof along with this PDF for entry verification");
             content.endText();
 
 
