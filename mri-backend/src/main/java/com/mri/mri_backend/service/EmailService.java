@@ -432,54 +432,91 @@ public class EmailService {
             float sigX = 360f;
             float sigY = footerY + 18f;
 
-            // Load and embed signature image from resources and place it to the RIGHT
-            try {
-                // --- SrDPO SIGNATURE (try both .jpeg and .jpg) ---
-                String[] srCandidates = new String[]{"Asset/SrDPO_signature.jpeg", "Asset/SrDPO_signature.jpg"};
-                ClassPathResource srResource = null;
-                for (String p : srCandidates) {
-                    ClassPathResource r = new ClassPathResource(p);
-                    if (r.exists()) {
-                        srResource = r;
-                        break;
-                    }
-                }
+            // Load and embed signature images from resources (works both in IDE and packaged JAR)
+try {
 
-                if (srResource != null) {
-                    PDImageXObject srImage = PDImageXObject.createFromFileByContent(srResource.getFile(), document);
-                    // Place SrDPO signature on the right side (lower-left corner at sigX, sigY)
-                    content.drawImage(srImage, sigX, sigY, sigWidth, sigHeight);
-                    System.out.println("✓ SrDPO signature embedded from resources");
-                } else {
-                    System.err.println("SrDPO signature image not found at Asset/SrDPO_signature.(jpeg|jpg)");
-                }
+    // ===============================================
+    // SrDPO SIGNATURE
+    // ===============================================
+    String[] srCandidates = {
+            "Asset/SrDPO_signature.jpeg",
+            "Asset/SrDPO_signature.jpg"
+    };
 
-                // --- DPO SIGNATURE (try both .jpg and .jpeg) ---
-                String[] dpoCandidates = new String[]{"Asset/dpo_sign.jpg", "Asset/dpo_sign.jpeg"};
-                ClassPathResource dpoResource = null;
-                for (String p : dpoCandidates) {
-                    ClassPathResource r = new ClassPathResource(p);
-                    if (r.exists()) {
-                        dpoResource = r;
-                        break;
-                    }
-                }
+    ClassPathResource srResource = null;
 
-                if (dpoResource != null) {
-                    PDImageXObject dpoImage = PDImageXObject.createFromFileByContent(dpoResource.getFile(), document);
-                    // Place DPO signature above the SrDPO signature with a small gap
-                    float dpoWidth = sigWidth * 0.85f; // slightly smaller than SrDPO
-                    float dpoHeight = sigHeight * 0.6f;
-                    float dpoX = sigX; // align left edges
-                    float dpoY = sigY + sigHeight + 8f; // 8 units above the SrDPO signature
-                    content.drawImage(dpoImage, dpoX, dpoY, dpoWidth, dpoHeight);
-                    System.out.println("✓ DPO signature embedded above SrDPO signature from resources");
-                } else {
-                    System.err.println("DPO signature image not found at Asset/dpo_sign.(jpg|jpeg)");
-                }
-            } catch (Exception e) {
-                System.err.println("Error loading signature image(s): " + e.getMessage());
-            }
+    for (String path : srCandidates) {
+        ClassPathResource resource = new ClassPathResource(path);
+        if (resource.exists()) {
+            srResource = resource;
+            break;
+        }
+    }
+
+    if (srResource != null) {
+
+        byte[] imageBytes = srResource.getInputStream().readAllBytes();
+
+        PDImageXObject srImage = PDImageXObject.createFromByteArray(
+                document,
+                imageBytes,
+                "SrDPO_signature"
+        );
+
+        content.drawImage(srImage, sigX, sigY, sigWidth, sigHeight);
+
+        System.out.println("✓ SrDPO signature embedded successfully");
+
+    } else {
+        System.err.println("SrDPO signature image not found.");
+    }
+
+
+    // ===============================================
+    // DPO SIGNATURE
+    // ===============================================
+    String[] dpoCandidates = {
+            "Asset/dpo_sign.jpg",
+            "Asset/dpo_sign.jpeg"
+    };
+
+    ClassPathResource dpoResource = null;
+
+    for (String path : dpoCandidates) {
+        ClassPathResource resource = new ClassPathResource(path);
+        if (resource.exists()) {
+            dpoResource = resource;
+            break;
+        }
+    }
+
+    if (dpoResource != null) {
+
+        byte[] imageBytes = dpoResource.getInputStream().readAllBytes();
+
+        PDImageXObject dpoImage = PDImageXObject.createFromByteArray(
+                document,
+                imageBytes,
+                "DPO_signature"
+        );
+
+        float dpoWidth = sigWidth * 0.85f;
+        float dpoHeight = sigHeight * 0.6f;
+        float dpoX = sigX;
+        float dpoY = sigY + sigHeight + 8f;
+
+        content.drawImage(dpoImage, dpoX, dpoY, dpoWidth, dpoHeight);
+
+        System.out.println("✓ DPO signature embedded successfully");
+
+    } else {
+        System.err.println("DPO signature image not found.");
+    }
+
+} catch (Exception e) {
+    System.err.println("Error loading signature image(s): " + e.getMessage());
+    e.printStackTrace();
+}
 
 
             // ===============================================
