@@ -145,8 +145,12 @@ public class EmailService {
         if (instituteName != null) {
             String institute = instituteName.toLowerCase().trim();
             if (institute.contains("malda")) {
-                return "abhijeetmishra2940@gmail.com";
+//                return "niranjantarapati@gmail.com";
+                return "abhijeetkumar2940@gmail.com";
             } else if (institute.contains("bhagalpur")) {
+                return "abhijeetkumar2940@gmail.com";
+            }
+            else if (institute.contains("sahibganj")) {
                 return "abhijeetkumar2940@gmail.com";
             }
         }
@@ -234,42 +238,47 @@ public class EmailService {
             PDPageContentStream content = new PDPageContentStream(document, page);
 
             // ===============================================
-        // OUTER BORDER (Premium Official Look)
+            // OUTER BORDER (Premium Official Look)
             // ===============================================
             content.setLineWidth(1f);
             content.addRect(25, 25, 545, 742);
             content.stroke();
 
-            float y = 770;
+            // Start Y inside the drawn border (border top is at 25 + 742 = 767)
+            // Use a slightly smaller Y so header text sits comfortably inside the border
+            // Move down 3 units from original position
+            float y = 737;
 
         // ===============================================
         // HEADER - EASTERN RAILWAY (centered)
         // ===============================================
             content.beginText();
             content.setFont(PDType1Font.HELVETICA_BOLD, 22);
-            content.newLineAtOffset(200, y);
+            // Center align: page center is ~297, adjust offset for text width
+            content.newLineAtOffset(160, y);
             content.showText("EASTERN RAILWAY");
             content.endText();
 
-            y -= 28;
+            y -= 22;
 
             // First divider line
             content.moveTo(40, y);
             content.lineTo(555, y);
             content.stroke();
 
-            y -= 20;
+            y -= 30;
 
         // ===============================================
         // HEADER - RAILWAY INSTITUTE, MALDA (centered)
         // ===============================================
             content.beginText();
             content.setFont(PDType1Font.HELVETICA_BOLD, 22);
-            content.newLineAtOffset(180, y);
+            // Center align: page center is ~297, adjust offset for text width
+            content.newLineAtOffset(130, y);
             content.showText("RAILWAY INSTITUTE, MALDA");
             content.endText();
 
-            y -= 22;
+            y -= 15;
 
             // Second divider line
             content.moveTo(40, y);
@@ -283,7 +292,7 @@ public class EmailService {
         // ===============================================
             content.beginText();
             content.setFont(PDType1Font.HELVETICA_BOLD, 18);
-            content.newLineAtOffset(145, y);
+            content.newLineAtOffset(160, y);
             content.showText("BOOKING CONFIRMATION");
             content.endText();
 
@@ -299,10 +308,12 @@ public class EmailService {
         // ===============================================
         // DETAILS
         // ===============================================
+            // Record the starting Y for the details block so we can compute positions relative to it
+            float detailsStartY = y;
             content.beginText();
             content.setFont(PDType1Font.TIMES_ROMAN, 14);
             content.setLeading(18f);
-            content.newLineAtOffset(48, y);
+            content.newLineAtOffset(48, detailsStartY);
 
             content.showText("Booking ID");
             content.newLineAtOffset(170, 0);
@@ -382,68 +393,105 @@ public class EmailService {
             content.showText(": " + (endTime != null ? endTime : "N/A"));
             content.newLineAtOffset(-170, -20);
 
-            content.showText("Special Requirements");
-            content.newLineAtOffset(170, 0);
-            content.showText(": " + (specialRequirements != null && !specialRequirements.trim().isEmpty() ? specialRequirements : "None"));
+
             content.endText();
 
             // ===============================================
             // HIGHLIGHT SECTION - 2 lines below Special Requirements
             // ===============================================
-            float highlightY = y - (9 * 20) - 40; // Position 2 lines below special requirements
-            
-          content.beginText();
-          content.setFont(PDType1Font.HELVETICA_BOLD, 12);
-          content.newLineAtOffset(100, highlightY);
-          content.showText("IMPORTANT: Please carry a valid ID proof along with this PDF for entry verification");
-          content.endText();
+            // We expect 12 detail lines (one for each label/value). Use the leading from the details block
+            float leading = 18f;
+            int detailLines = 12; // number of detail lines printed above
+            // Place highlight two lines below the last detail line
+            float highlightY = detailsStartY - (detailLines * leading) - (2 * leading);
+
+            content.beginText();
+            content.setFont(PDType1Font.HELVETICA_BOLD, 12);
+            content.newLineAtOffset(100, highlightY);
+            // Use ASCII text only; some glyphs are not available in Type1 fonts
+            content.showText("Please carry a valid ID proof along with this document for verification");
+            content.endText();
 
 
             // ===============================================
             // FOOTER LINE
             // ===============================================
-            content.moveTo(40, 100);
-            content.lineTo(555, 100);
-            content.stroke();
+//            content.moveTo(40, 100);
+//            content.lineTo(555, 100);
+//            content.stroke();
 
             // ===============================================
             // FOOTER SIGNATURE (placed above a divider on the right)
+            // Move 3 units down from current position
             // ===============================================
-            float footerY = 118;
+            float footerY = 80;
+
+            // Signature placement coordinates declared here so date can be placed relative to the signature
+            float sigWidth = 120f;
+            float sigHeight = 60f;
+            float sigX = 360f;
+            float sigY = footerY + 18f;
 
             // Load and embed signature image from resources and place it to the RIGHT
             try {
-                ClassPathResource signatureResource = new ClassPathResource("Asset/SrDPO_signature.jpeg");
-                if (signatureResource.exists()) {
-                    PDImageXObject signatureImage = PDImageXObject.createFromFileByContent(
-                            signatureResource.getFile(),
-                            document
-                    );
-                    // Place signature on the right side
-                    float sigWidth = 120f;
-                    float sigHeight = 60f;
-                    float sigX = 360f;
-                    float sigY = footerY + 18f;
-                    content.drawImage(signatureImage, sigX, sigY, sigWidth, sigHeight);
+                // --- SrDPO SIGNATURE (try both .jpeg and .jpg) ---
+                String[] srCandidates = new String[]{"Asset/SrDPO_signature.jpeg", "Asset/SrDPO_signature.jpg"};
+                ClassPathResource srResource = null;
+                for (String p : srCandidates) {
+                    ClassPathResource r = new ClassPathResource(p);
+                    if (r.exists()) {
+                        srResource = r;
+                        break;
+                    }
+                }
+
+                if (srResource != null) {
+                    PDImageXObject srImage = PDImageXObject.createFromFileByContent(srResource.getFile(), document);
+                    // Place SrDPO signature on the right side (lower-left corner at sigX, sigY)
+                    content.drawImage(srImage, sigX, sigY, sigWidth, sigHeight);
+                    System.out.println("✓ SrDPO signature embedded from resources");
                 } else {
-                    System.err.println("Signature image not found at Asset/SrDPO_signature.jpeg");
+                    System.err.println("SrDPO signature image not found at Asset/SrDPO_signature.(jpeg|jpg)");
+                }
+
+                // --- DPO SIGNATURE (try both .jpg and .jpeg) ---
+                String[] dpoCandidates = new String[]{"Asset/dpo_sign.jpg", "Asset/dpo_sign.jpeg"};
+                ClassPathResource dpoResource = null;
+                for (String p : dpoCandidates) {
+                    ClassPathResource r = new ClassPathResource(p);
+                    if (r.exists()) {
+                        dpoResource = r;
+                        break;
+                    }
+                }
+
+                if (dpoResource != null) {
+                    PDImageXObject dpoImage = PDImageXObject.createFromFileByContent(dpoResource.getFile(), document);
+                    // Place DPO signature above the SrDPO signature with a small gap
+                    float dpoWidth = sigWidth * 0.85f; // slightly smaller than SrDPO
+                    float dpoHeight = sigHeight * 0.6f;
+                    float dpoX = sigX; // align left edges
+                    float dpoY = sigY + sigHeight + 8f; // 8 units above the SrDPO signature
+                    content.drawImage(dpoImage, dpoX, dpoY, dpoWidth, dpoHeight);
+                    System.out.println("✓ DPO signature embedded above SrDPO signature from resources");
+                } else {
+                    System.err.println("DPO signature image not found at Asset/dpo_sign.(jpg|jpeg)");
                 }
             } catch (Exception e) {
-                System.err.println("Error loading signature image: " + e.getMessage());
+                System.err.println("Error loading signature image(s): " + e.getMessage());
             }
 
-            // Divider line below signature
-            content.moveTo(40, footerY - 30);
-            content.lineTo(555, footerY - 30);
-            content.stroke();
 
             // ===============================================
-            // DATE (on the left below divider)
+            // DATE (place below the signature on the same right side)
             // ===============================================
             java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy hh:mm a");
+            // Place date immediately below the signature's bottom edge (sigY is signature's lower-left Y)
+            float dateX = sigX; // align with signature's left X
+            float dateY = sigY - 14f; // just below signature
             content.beginText();
             content.setFont(PDType1Font.HELVETICA, 10);
-            content.newLineAtOffset(50, footerY - 50);
+            content.newLineAtOffset(dateX, dateY);
             content.showText("Date: " + java.time.LocalDateTime.now().format(dtf));
             content.endText();
 
