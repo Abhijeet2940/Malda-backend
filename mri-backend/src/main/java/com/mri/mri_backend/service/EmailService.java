@@ -145,8 +145,7 @@ public class EmailService {
         if (instituteName != null) {
             String institute = instituteName.toLowerCase().trim();
             if (institute.contains("malda")) {
-//                return "niranjantarapati@gmail.com";
-                return "abhijeetkumar2940@gmail.com";
+               return "niranjantarapati@gmail.com";
             } else if (institute.contains("bhagalpur")) {
                 return "abhijeetkumar2940@gmail.com";
             }
